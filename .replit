@@ -1,0 +1,7 @@
+run = "python trending.py"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["python", "trending.py", "--no-live"]
