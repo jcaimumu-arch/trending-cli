@@ -2,104 +2,97 @@
 
 # 🌐 热榜聚合器
 
-**一条命令看遍全站热点 — 零 API Key，零注册，即开即用**
+**一条命令看遍全站热点 — 零 API Key，零注册，即开即用（Go 版）**
 
 </div>
 
 ## 快速开始
 
 ```bash
-pip install -r requirements.txt
-python trending.py
+go build -o trending
+./trending
 ```
 
 就是这么简单。
 
 ## 数据源
 
-| 按键 | 源 | 图标 | 说明 |
-|------|----|------|------|
-| `g` | **GitHub Trending** | ⭐ | 今日热门仓库，含星数和语言 |
-| `r` | **Reddit** | 🤖 | r/popular 全球热帖 |
-| `z` | **知乎日报** | 💡 | 知乎当日精选热门内容 |
-| `h` | **Hacker News** | 🧠 | 硅谷极客头条 |
-| `v` | **V2EX** | 💬 | 中文技术社区热门讨论 |
-| `w` | **微博** | 🔥 | 实时热搜榜 |
+| 源 | 图标 | 说明 |
+|----|------|------|
+| **GitHub Trending** | `[star]` | 今日热门仓库，含星数和语言 |
+| **Reddit** | `[R]` | r/popular 全球热帖 |
+| **知乎** | `[Zh]` | 知乎发现页热门问题 |
+| **Hacker News** | `[HN]` | Firebase 公开 API，硅谷极客头条 |
+| **V2EX** | `[V]` | 中文技术社区热门主题 |
+| **微博** | `[Wb]` | 实时热搜榜 |
 
 全部零 Key、零认证、纯公开接口。
 
 ## 界面预览
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  🌐 热榜聚合                        2025-06-06 19:30 · 60 条 │
-│                                                             │
-│  ╭─⭐ GitHub ─────────────────────╮  ╭─🤖 Reddit ───────────╮ │
-│  │ 1 NousResearch/hermes-agent    │  │ 1 Title here...     │ │
-│  │ 2 chopratejas/headroom         │  │ 2 Another title...  │ │
-│  │ 3 CopilotKit/CopilotKit        │  │ 3 ...               │ │
-│  │ ...                            │  │ ...                 │ │
-│  ╰────────────────────────────────╯  ╰─────────────────────╯ │
-│                                                             │
-│  ╭─💡 知乎日报 ────────────────────╮  ╭─🔥 微博 ─────────────╮ │
-│  │ 1 为什么...                    │  │ 1 热搜词条          │ │
-│  │ 2 如何评价...                  │  │ 2 热点事件          │ │
-│  │ ...                            │  │ ...                 │ │
-│  ╰────────────────────────────────╯  ╰─────────────────────╯ │
-│                                                             │
-│   19:30  [g]itHub  [r]eddit  [z]hihu  [h]ackerNews          │
-│   [v]2ex  [w]eibo  [a]ll  [1-9]打开链接  [q]uit             │
-└─────────────────────────────────────────────────────────────┘
+╔════════════════════════════════════════════════════════════════════════╗
+║                                                                        ║
+║  [Net] 热榜聚合    45 条 · 19:30                                        ║
+║                                                                        ║
+║  ╭──────────────────────────────────────────╮  ╭──────────────────────╮ ║
+║  │ [star] GitHub                            │  │ [HN] HackerNews      │ ║
+║  │                                          │  │                      │ ║
+║  │ 1  user/repo                  ★ 1.2k     │  │ 1  Title       369   │ ║
+║  │ 2  another/repo               ★ 800       │  │ 2  Title       549   │ ║
+║  │ ...                                      │  │ ...                  │ ║
+║  ╰──────────────────────────────────────────╯  ╰──────────────────────╯ ║
+║                                                                        ║
+║   [19:30]  点击标题（Ctrl/Cmd+click）在浏览器中打开  |  45 条            ║
+║                                                                        ║
+╚════════════════════════════════════════════════════════════════════════╝
 ```
 
-*宽终端自动双列布局，窄终端单列。*
-
-## 操作
-
-| 按键 | 功能 |
-|------|------|
-| `g` | 只看 GitHub |
-| `r` | 只看 Reddit |
-| `z` | 只看知乎日报 |
-| `h` | 只看 HackerNews |
-| `v` | 只看 V2EX |
-| `w` | 只看微博 |
-| `a` | 回到全部显示 |
-| `1`-`9` | 用默认浏览器打开对应链接 |
-| `q` | 退出 |
-| 自动 | 每 3 分钟自动刷新所有数据 |
+- 宽终端 (≥110 列) 自动双列布局，窄终端单列。
+- 标题支持 OSC 8 终端超链接，Ctrl/Cmd+click 即可在浏览器中打开。
+- 中文宽度感知对齐（使用 `go-runewidth`）。
+- 支持通过 `HTTP_PROXY` / `HTTPS_PROXY` 环境变量走代理。
 
 ## 命令行参数
 
 ```bash
-python trending.py               # 默认：交互模式，自动刷新
-python trending.py --no-live     # 单次抓取后退出
-python trending.py --version     # 查看版本
+./trending             # 抓取并展示全部 6 个源的热榜
+./trending --version   # 查看版本
+./trending --proxy http://127.0.0.1:7897      # 通过 HTTP 代理抓取（海外源推荐）
+./trending --proxy socks5://127.0.0.1:1080    # 通过 SOCKS5 代理抓取
+./trending --timeout 60                       # 调整请求超时秒数（默认 30）
 ```
 
-## 跨平台
+也支持标准环境变量（优先级低于 `--proxy`）：
 
-| 平台 | 交互方式 |
-|------|----------|
-| Linux / macOS | 实时按键响应（`termios` 非阻塞） |
-| Windows | 输入框轮询，功能一致 |
+```bash
+export HTTPS_PROXY=http://127.0.0.1:7897
+./trending
+```
+
+> 海外源（GitHub / HackerNews / Reddit / V2EX）在国内网络下建议配置代理。
 
 ## 项目结构
 
 ```
-trending/
-├── trending.py          # 主程序（~630 行，单文件）
-├── requirements.txt     # 依赖列表
-├── config.json          # 未使用，保留扩展空间
-└── README.md            # 本文件
+trending-cli/
+├── main.go         # 入口与并发抓取
+├── fetch.go        # 数据模型 + 6 个源的抓取函数
+├── render.go       # 终端渲染（面板 / 表格 / 颜色 / OSC8 超链接）
+├── go.mod          # Go 模块定义
+├── trending.sh     # 便捷启动脚本
+└── README.md       # 本文件
 ```
 
 ## 技术栈
 
-- **网络请求**: `httpx`（异步并发）
-- **HTML 解析**: `beautifulsoup4`
-- **终端渲染**: `rich`（Panel / Table / Markdown / Live）
-- **纯标准库**: `asyncio`、`argparse`、`webbrowser`、`termios`
+- **语言**: Go 1.21+
+- **网络请求**: `net/http`（标准库，goroutine 并发）
+- **代理支持**: HTTP / HTTPS / SOCKS5（`golang.org/x/net/proxy`）
+- **HTML 解析**: `github.com/PuerkitoBio/goquery`
+- **终端渲染**: 手动 ANSI + `github.com/charmbracelet/lipgloss`（颜色）
+- **宽度对齐**: `github.com/mattn/go-runewidth`（中日韩双宽字符）
+- **终端尺寸**: `golang.org/x/term`
 
 ## 免责声明
 

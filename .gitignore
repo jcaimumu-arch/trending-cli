@@ -1,4 +1,14 @@
+# Python 旧产物
 __pycache__/
 *.pyc
-.DS_Store
-.codegraph/
+venv/
+myenv/
+.env
+
+# Go
+/trending
+/trending.exe
+*.exe
+*.test
+*.out
+dist/
