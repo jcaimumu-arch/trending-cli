@@ -345,7 +345,7 @@ func main() {
 	flag.BoolVar(&showVersion, "version", false, "显示版本号")
 	flag.StringVar(&proxyFlag, "proxy", "", "HTTP/SOCKS5 代理地址，例如 http://127.0.0.1:7890 或 socks5://127.0.0.1:1080")
 	flag.IntVar(&timeoutSec, "timeout", 30, "请求超时秒数")
-	flag.BoolVar(&saveMode, "save", false, "将抓取结果存储到本地（~/.trending-cli/data/），含正文摘要，自动去重")
+	flag.BoolVar(&saveMode, "save", true, "将抓取结果存储到本地（~/.trending-cli/data/），含正文摘要，自动去重（默认开启）")
 	flag.Parse()
 
 	if showVersion {

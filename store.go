@@ -244,15 +244,12 @@ func saveItems(github, reddit, zhihu, hackernews, v2ex, weibo []Item) (int, erro
 	all = append(all, v2ex...)
 	all = append(all, weibo...)
 
-	// 过滤掉已存在的
+	// 过滤掉当日已存在的（同一天多次运行不重复）
 	var toSave []StoredItem
 	for _, it := range all {
 		id := hashID(it.URL)
 		if existing[id] {
 			continue // 当日已存在
-		}
-		if isDuplicateGlobally(dir, it.URL) {
-			continue // 历史已存储过（跨天去重）
 		}
 		existing[id] = true // 防止同批次内重复
 		toSave = append(toSave, StoredItem{
@@ -288,9 +285,6 @@ func saveItems(github, reddit, zhihu, hackernews, v2ex, weibo []Item) (int, erro
 		return 0, err
 	}
 
-	// 更新全局索引（记录所有历史 URL ID，用于跨天去重）
-	updateGlobalIndex(dir, toSave)
-
 	return len(toSave), nil
 }
 
@@ -309,46 +303,6 @@ func saveWithContent(client *http.Client, items []StoredItem) {
 		}(i)
 	}
 	wg.Wait()
-}
-
-// updateGlobalIndex 更新全局索引文件 ~/.trending-cli/data/index.json
-// 用于跨天去重：记录所有已存储过的 URL ID
-func updateGlobalIndex(dir string, newItems []StoredItem) {
-	indexFile := filepath.Join(dir, "index.json")
-	var index map[string]string // id -> first saved date
-	if data, err := os.ReadFile(indexFile); err == nil {
-		_ = json.Unmarshal(data, &index)
-	}
-	if index == nil {
-		index = map[string]string{}
-	}
-	dateStr := time.Now().Format("2006-01-02")
-	for _, it := range newItems {
-		if _, ok := index[it.ID]; !ok {
-			index[it.ID] = dateStr
-		}
-	}
-	data, err := json.MarshalIndent(index, "", "  ")
-	if err != nil {
-		return
-	}
-	_ = os.WriteFile(indexFile, data, 0644)
-}
-
-// isDuplicateGlobally 检查某 URL 是否已在历史中存储过
-func isDuplicateGlobally(dir, url string) bool {
-	id := hashID(url)
-	indexFile := filepath.Join(dir, "index.json")
-	data, err := os.ReadFile(indexFile)
-	if err != nil {
-		return false
-	}
-	var index map[string]string
-	if err := json.Unmarshal(data, &index); err != nil {
-		return false
-	}
-	_, ok := index[id]
-	return ok
 }
 
 // ── 查询历史 ──────────────────────────────────────────────────────
