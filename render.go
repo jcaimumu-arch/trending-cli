@@ -340,10 +340,12 @@ func main() {
 		showVersion bool
 		proxyFlag   string
 		timeoutSec  int
+		saveMode    bool
 	)
 	flag.BoolVar(&showVersion, "version", false, "显示版本号")
 	flag.StringVar(&proxyFlag, "proxy", "", "HTTP/SOCKS5 代理地址，例如 http://127.0.0.1:7890 或 socks5://127.0.0.1:1080")
 	flag.IntVar(&timeoutSec, "timeout", 30, "请求超时秒数")
+	flag.BoolVar(&saveMode, "save", false, "将抓取结果存储到本地（~/.trending-cli/data/），含正文摘要，自动去重")
 	flag.Parse()
 
 	if showVersion {
@@ -369,6 +371,24 @@ func main() {
 	fmt.Println(loadingMsg)
 
 	github, reddit, zhihu, hackernews, v2ex, weibo := fetchAll(15)
+
+	// --save：存储到本地 + 抓取正文摘要 + 去重
+	if saveMode {
+		count, err := saveItems(github, reddit, zhihu, hackernews, v2ex, weibo)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "存储失败: %v\n", err)
+		} else if count > 0 {
+			hint := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render(
+				fmt.Sprintf("  [已存储 %d 条到 ~/.trending-cli/data/]", count),
+			)
+			fmt.Println(hint)
+		} else {
+			hint := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(
+				"  [本次无新条目，全部已存储过]",
+			)
+			fmt.Println(hint)
+		}
+	}
 
 	ts := time.Now().Format("15:04:05")
 	width := termWidth()
