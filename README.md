@@ -2,11 +2,21 @@
 
 # 热榜聚合器
 
-**一条命令看遍全站热点 - 零 API Key，零注册，即开即用（Go 版）**
+**AI 驱动的全网热点趋势分析终端 - 6 源聚合 · 自动存储 · AI 深度分析 · 可视化图表**
 
 GitHub · Reddit · 知乎 · HackerNews · V2EX · 微博
 
 </div>
+
+---
+
+## 为什么用这个？
+
+不只是看热榜。每条热点会被自动抓取正文摘要并存到本地，积累几天后，**AI 会分析全网舆论趋势**——哪些话题在持续发酵、技术圈在关注什么、整体情绪是正面还是负面、你应该关注什么。
+
+**这是其他热榜工具没有的能力。**
+
+---
 
 ## 快速开始
 
@@ -16,22 +26,151 @@ GitHub · Reddit · 知乎 · HackerNews · V2EX · 微博
 git clone https://github.com/jcaimumu-arch/trending-cli.git
 cd trending-cli
 go build -o trending
-./trending
+./trending          # 抓取热榜 + 自动存储
+./trending --web    # 启动 Web 界面查看历史数据
+./trending --analyze 7  # AI 分析最近 7 天趋势
 ```
 
-就是这么简单。
+## 核心功能
 
-## 功能特性
+### 1. AI 趋势分析（核心卖点）
 
-- **6 个热榜源**：GitHub Trending / Reddit / 知乎 / HackerNews / V2EX / 微博
-- **并发抓取**：goroutine 并发请求，6 个源同时抓取
-- **自动代理探测**：启动时自动检测本地 Clash 代理（7897/7890/7891），Clash 开着就能直连海外站点
-- **本地存储**：抓取结果自动存储到 `~/.trending-cli/data/`，含正文摘要，按天去重，为未来 AI 总结留好数据
-- **systemd 定时执行**：配置用户级 systemd timer，每 6 小时自动抓取存储，重启后仍生效
-- **OSC 8 终端超链接**：Ctrl/Cmd+click 标题即可在浏览器中打开
-- **中文宽度对齐**：使用 `go-runewidth` 正确处理中日韩双宽字符，表格列对齐
-- **双列自适应布局**：宽终端 (≥110 列) 双列并排，窄终端单列
-- **零依赖配置**：零 API Key、零注册、纯公开接口
+配好 API Key 后，一键分析近 N 天的热点趋势：
+
+```bash
+# 命令行模式
+trending --analyze 7
+```
+
+**或通过 Web 界面（推荐）**：
+
+```bash
+trending --web
+# 浏览器打开 http://localhost:8888/analysis
+```
+
+AI 会从 5 个维度分析并生成可视化图表：
+
+| 维度 | 说明 | 图表 |
+|------|------|------|
+| **总体趋势摘要** | 概括近期热点全貌 | 文字 |
+| **热点话题排行** | 8-15 个话题，含分类/热度分数/情绪/一句话描述 | 横向柱状图 + 详情表 |
+| **分类分布** | 技术/社会/娱乐/经济/体育/科学/其他 | 环形图 |
+| **舆论情绪分布** | 正面/负面/中性占比 | 环形图 |
+| **分类热度对比** | 各分类平均热度分数 | 柱状图 |
+
+**分析效果示例**（[在线查看完整 HTML 示例](./sample.html)）：
+
+<details>
+<summary>点击展开分析效果截图</summary>
+
+![](./sample.html)
+
+</details>
+
+**命令行 AI 分析输出示例**：
+
+```
+════════════════════════════════════════════════════════════
+  AI 趋势分析 · 最近 2 天
+════════════════════════════════════════════════════════════
+
+【总体趋势摘要】
+近期热点聚焦于自然灾害（台风巴威、广西洪灾）、体育赛事、
+AI技术大爆发（GPT-5.6、Grok 4.5、AI Agent框架）以及社会事件。
+舆论情绪以中性偏负为主，技术圈活跃。
+
+【热点话题】
+  1. [社会] 台风巴威 (热度:90, 负面)
+     台风巴威路径多变，可能正面登陆，多地暴雨，引发防灾关注。
+  2. [技术] GPT-5.6/Grok 4.5发布 (热度:88, 正面)
+     OpenAI和xAI相继发布新模型，多项AI Agent工具同步更新。
+  3. [社会] 程序员猝死被拉入工作群 (热度:80, 负面)
+     32岁程序员猝死抢救中仍被拉入工作群，引发职场文化讨论。
+  ...
+
+【分类分布】
+  技术: 4  社会: 3  娱乐: 2  体育: 1  科学: 1
+
+【情绪分布】
+  正面: 3  负面: 4  中性: 4
+
+【技术趋势】
+AI agent框架成为绝对焦点：agent-skills、superpowers等GitHub
+项目星数飙升；GPT-5.6/Grok 4.5多模态模型竞争...
+
+【舆论情绪分析】
+整体舆论偏负面，灾害与职场悲剧主导负面情绪；
+技术领域因AI突破和开源活跃呈现正面。
+
+【建议】
+开发者应聚焦AI agent落地场景，关注隐私计算与边缘AI；
+投资者可布局抗灾科技及AI基础设施。
+
+════════════════════════════════════════════════════════════
+```
+
+### 配置 AI API Key
+
+支持 **DeepSeek**（默认，国内速度快）和 **Google Gemini**。
+
+创建 `~/.trending-cli/config.json`：
+
+```json
+{
+  "provider": "deepseek",
+  "deepseek_api_key": "sk-你的key",
+  "model": "deepseek-v4-flash"
+}
+```
+
+或使用环境变量：
+
+```bash
+export DEEPSEEK_API_KEY="sk-你的key"
+# 或
+export GEMINI_API_KEY="你的key"
+```
+
+| Provider | 配置字段 | 环境变量 | 获取地址 |
+|----------|---------|---------|---------|
+| **DeepSeek**（默认） | `deepseek_api_key` | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com/) |
+| **Gemini** | `gemini_api_key` | `GEMINI_API_KEY` | [aistudio.google.com](https://aistudio.google.com/apikey) |
+
+切换 provider 只需改 `"provider"` 字段。如果只配了一个 key，程序会自动选择。
+
+### 2. Web 历史数据浏览
+
+```bash
+trending --web              # 启动 Web 服务（默认 :8888）
+trending --web --addr :9999 # 指定端口
+```
+
+- **首页**：历史数据去重聚合，按来源/日期/标题筛选，点击标题跳转原文
+- **趋势分析页**（`/analysis`）：AI 分析 + 可视化图表
+
+### 3. 终端热榜聚合
+
+```bash
+trending          # 直接在终端看双列面板布局的热榜
+```
+
+- 6 源并发抓取，圆角边框双列面板
+- OSC8 超链接（Ctrl/Cmd+click 打开）
+- 中文宽度对齐（go-runewidth）
+- 自动代理探测（Clash 用户零配置直连海外站点）
+
+### 4. 本地存储 + 定时执行
+
+每次运行自动将热榜数据（含正文摘要）存到本地，可配置 systemd timer 每 6 小时自动抓取：
+
+```bash
+trending          # 默认就会存储
+```
+
+数据存在 `~/.trending-cli/data/`，按天 JSON 文件，AI 分析直接读这些数据。
+
+---
 
 ## 数据源
 
@@ -61,57 +200,48 @@ go build -o trending
 ║  │ ...                                      │  │ ...                  │ ║
 ║  ╰──────────────────────────────────────────╯  ╰──────────────────────╯ ║
 ║                                                                        ║
-║   [19:30]  点击标题（Ctrl/Cmd+click）在浏览器中打开  |  70 条            ║
-║                                                                        ║
 ╚════════════════════════════════════════════════════════════════════════╝
 ```
 
 ## 命令行参数
 
 ```bash
-trending             # 抓取热榜 + 自动存储到本地（默认开启）
-trending --version   # 查看版本号
-trending --save=false                      # 只看不存
-trending --proxy http://127.0.0.1:7897     # 手动指定 HTTP 代理
-trending --proxy socks5://127.0.0.1:1080  # 手动指定 SOCKS5 代理
-trending --timeout 60                      # 调整请求超时秒数（默认 30）
+trending                              # 抓取热榜 + 自动存储（默认）
+trending --version                    # 查看版本号
+trending --save=false                 # 只看不存
+trending --proxy http://127.0.0.1:7897  # 手动指定代理
+trending --proxy socks5://127.0.0.1:1080  # SOCKS5 代理
+trending --timeout 60                 # 调整请求超时秒数
+trending --web                        # 启动 Web 界面
+trending --web --addr :9999           # 指定 Web 端口
+trending --analyze 7                 # AI 分析最近 7 天趋势
 ```
 
 ### 代理支持
 
-程序会按以下优先级自动选择代理：
+| 优先级 | 方式 |
+|--------|------|
+| 1 | `--proxy` 命令行参数 |
+| 2 | `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` 环境变量 |
+| 3 | **自动探测本地 Clash 代理**（7897/7890/7891） |
+| 4 | 直连 |
 
-1. `--proxy` 命令行参数（最高优先级）
-2. `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` 环境变量
-3. **自动探测本地 Clash 代理**（无需任何配置）
-4. 直连（不走代理）
-
-**自动探测**：启动时会用极短超时（150ms）探测本地 Clash 常用端口
-（`127.0.0.1:7897` / `7890` / `7891`），哪个通就用哪个。
-探测到代理时会显示提示：
-
-```
-加载各大热榜…（探测到本地代理 http://127.0.0.1:7897）
-```
-
-Clash 没开时自动回退直连，不影响使用。
-
-> 海外源（GitHub / HackerNews / Reddit / V2EX）在国内网络下建议配置代理。
+Clash 开着就自动用，没开就直连，零配置。
 
 ## 本地存储
-
-每次运行默认会将抓取结果存储到本地，为未来 AI 总结提炼预留数据。
 
 ### 存储路径
 
 ```
-~/.trending-cli/data/
-├── 2026-07-09.json    # 按日期存储，JSON 数组格式（美化缩进）
-├── 2026-07-10.json
-└── ...
+~/.trending-cli/
+├── config.json          # AI 配置
+└── data/
+    ├── 2026-07-09.json   # 按日期存储
+    ├── 2026-07-10.json
+    └── ...
 ```
 
-### 每条记录结构
+### 每条记录
 
 ```json
 {
@@ -121,38 +251,25 @@ Clash 没开时自动回退直连，不影响使用。
   "url": "https://github.com/addyosmani/agent-skills",
   "desc": "Production-grade engineering skills for AI coding agents.",
   "heat": "74,256",
-  "extra": "JavaScript",
-  "content": "Production-grade engineering skills for AI coding agents...",
-  "fetched_at": "2026-07-09T10:24:45+08:00",
-  "saved_at": "2026-07-09T10:24:45+08:00",
-  "tags": null
+  "content": "正文摘要（最多 500 字符）...",
+  "fetched_at": "2026-07-09T10:24:45+08:00"
 }
 ```
 
 ### 正文摘要抓取
 
-每条热榜条目会并发抓取对应页面的正文内容（限并发 10）：
-
-1. 优先取 `meta description` / `og:description`
-2. 其次取 `<article>` / `<p>` 段落文本
-3. 噪音检测：HTML 模板/JS 壳子识别为噪音时用已有描述兜底
-4. 截断到 500 字符
+每条条目并发抓取正文（限并发 10）：优先 `meta description`，其次 `<article>/<p>` 段落，噪音检测后截断 500 字。
 
 ### 去重策略
 
-- **按天去重**：同一天多次运行只存新增条目
-- **跨天不拦截**：第二天即使 URL 相同也会正常存储（记录当天完整热榜快照，便于追踪热度趋势）
+- **按天去重**：同一天多次运行只存新增
+- **跨天不拦截**：每天完整快照，便于追踪热度变化
 
 ## 定时执行（systemd timer）
 
-可配置用户级 systemd timer，每 6 小时自动抓取存储，重启后仍生效。
-
-### 安装
-
 ```bash
-# 编译并放到 PATH 中
+# 编译并放到 PATH
 go build -o trending .
-mkdir -p ~/.local/bin
 cp trending ~/.local/bin/
 
 # 创建 systemd 用户服务
@@ -161,7 +278,6 @@ mkdir -p ~/.config/systemd/user
 cat > ~/.config/systemd/user/trending.service << 'EOF'
 [Unit]
 Description=Trending CLI - 抓取热榜并存储到本地
-
 [Service]
 Type=oneshot
 ExecStart=%h/.local/bin/trending --save
@@ -172,59 +288,34 @@ EOF
 cat > ~/.config/systemd/user/trending.timer << 'EOF'
 [Unit]
 Description=定时运行 trending 热榜抓取
-
 [Timer]
 OnCalendar=*-*-* 00/6:00:00
 Persistent=true
-
 [Install]
 WantedBy=default.target
 EOF
 
-# 启用
 systemctl --user daemon-reload
 systemctl --user enable trending.timer
 systemctl --user start trending.timer
-
-# 开启 lingering，确保重启后定时器仍运行
 loginctl enable-linger $USER
 ```
 
-### 常用命令
-
-```bash
-systemctl --user status trending.timer     # 查看定时器状态
-systemctl --user start trending.service    # 手动触发一次
-systemctl --user list-timers trending.timer # 查看下次执行时间
-cat ~/.trending-cli/data/trending.log      # 查看输出日志
-```
-
-### 修改执行间隔
-
-编辑 `~/.config/systemd/user/trending.timer` 的 `OnCalendar` 行：
-
-```ini
-OnCalendar=*-*-* 00/6:00:00    # 每 6 小时（默认）
-OnCalendar=*-*-* 00/3:00:00    # 每 3 小时
-OnCalendar=hourly              # 每小时
-OnCalendar=daily               # 每天一次（午夜）
-```
-
-改完后执行 `systemctl --user daemon-reload` 生效。
+修改间隔：编辑 `trending.timer` 的 `OnCalendar` 行，`daemon-reload` 生效。
 
 ## 项目结构
 
 ```
 trending-cli/
-├── fetch.go        # 数据模型 + HTTP 客户端 + 6 个源的抓取函数 + 代理探测
-├── render.go       # 终端渲染（面板 / 双列布局 / 颜色 / OSC8 超链接）+ 程序入口 main()
-├── store.go        # 本地存储（正文抓取 / 按天去重 / 噪音检测 / JSON 存储）
-├── go.mod          # Go 模块定义
-├── go.sum          # 依赖校验
-├── trending.sh     # 便捷启动脚本（调用编译好的二进制）
-├── .replit         # Replit 运行配置
-├── replit.nix      # Replit Nix 依赖
-└── README.md       # 本文件
+├── fetch.go        # 数据模型 + HTTP 客户端 + 6 源抓取 + 代理探测
+├── render.go       # 终端渲染 + 程序入口 main()
+├── store.go        # 本地存储（正文抓取 / 按天去重 / JSON 存储）
+├── ai.go           # AI 分析（DeepSeek/Gemini 双 provider + 趋势分析）
+├── web.go          # Web 服务（历史数据浏览 + AI 分析图表页面）
+├── sample.html     # AI 分析效果示例（可在 GitHub 直接打开）
+├── go.mod
+├── go.sum
+└── README.md
 ```
 
 ## 技术栈
@@ -232,22 +323,22 @@ trending-cli/
 | 用途 | 依赖 |
 |------|------|
 | 网络请求 | `net/http`（标准库，goroutine 并发） |
-| 代理支持 | HTTP/HTTPS 代理（`http.Transport.Proxy`）+ SOCKS5（`golang.org/x/net/proxy`） |
+| 代理支持 | HTTP/HTTPS（`http.Transport.Proxy`）+ SOCKS5（`golang.org/x/net/proxy`） |
 | HTML 解析 | `github.com/PuerkitoBio/goquery` |
-| 终端渲染 | 手动 ANSI 转义 + `github.com/charmbracelet/lipgloss`（颜色） |
-| 宽度对齐 | `github.com/mattn/go-runewidth`（中日韩双宽字符） |
-| 终端尺寸 | `golang.org/x/term` |
+| 终端渲染 | 手动 ANSI + `github.com/charmbracelet/lipgloss` |
+| 宽度对齐 | `github.com/mattn/go-runewidth` |
+| AI 分析 | DeepSeek API / Google Gemini API |
+| 图表 | Chart.js 4.4（CDN） |
 | 本地存储 | 标准库 `encoding/json` + `os` |
 
 ## 构建
 
 ```bash
-# 编译
 go build -o trending
 
-# 交叉编译（可选）
-GOOS=darwin GOARCH=arm64 go build -o trending-darwin    # macOS Apple Silicon
-GOOS=linux  GOARCH=amd64 go build -o trending-linux     # Linux x86_64
+# 交叉编译
+GOOS=darwin  GOARCH=arm64 go build -o trending-darwin   # macOS Apple Silicon
+GOOS=linux   GOARCH=amd64 go build -o trending-linux    # Linux x86_64
 GOOS=windows GOARCH=amd64 go build -o trending.exe      # Windows
 ```
 

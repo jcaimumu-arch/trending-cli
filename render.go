@@ -341,11 +341,17 @@ func main() {
 		proxyFlag   string
 		timeoutSec  int
 		saveMode    bool
+		webMode     bool
+		webAddr     string
+		analyzeDays int
 	)
 	flag.BoolVar(&showVersion, "version", false, "显示版本号")
 	flag.StringVar(&proxyFlag, "proxy", "", "HTTP/SOCKS5 代理地址，例如 http://127.0.0.1:7890 或 socks5://127.0.0.1:1080")
 	flag.IntVar(&timeoutSec, "timeout", 30, "请求超时秒数")
 	flag.BoolVar(&saveMode, "save", true, "将抓取结果存储到本地（~/.trending-cli/data/），含正文摘要，自动去重（默认开启）")
+	flag.BoolVar(&webMode, "web", false, "启动 Web 服务查看历史汇总数据")
+	flag.StringVar(&webAddr, "addr", ":8888", "Web 服务监听地址（默认 :8888）")
+	flag.IntVar(&analyzeDays, "analyze", 0, "AI 分析最近 N 天的热点趋势（需要配置 Gemini API Key）")
 	flag.Parse()
 
 	if showVersion {
@@ -353,14 +359,75 @@ func main() {
 		return
 	}
 
+	// 代理探测（所有模式都需要，包括 --web 和 --analyze）
 	if proxyFlag != "" {
 		proxyAddr = proxyFlag
 	} else if envProxy := os.Getenv("HTTP_PROXY"); envProxy == "" && os.Getenv("HTTPS_PROXY") == "" && os.Getenv("ALL_PROXY") == "" {
-		// 未显式指定代理时，自动探测本地 Clash 代理
 		detectedProxy = detectLocalProxy()
 	}
 	if timeoutSec > 0 {
 		httpTimeout = time.Duration(timeoutSec) * time.Second
+	}
+
+	// --analyze 模式：命令行直接输出 AI 分析
+	if analyzeDays > 0 {
+		result, err := analyzeTrends(analyzeDays)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "AI 分析失败: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("═" + strings.Repeat("═", 58) + "═")
+		fmt.Println("  AI 趋势分析 · 最近", analyzeDays, "天")
+		fmt.Println("═" + strings.Repeat("═", 58) + "═")
+		if result.Summary != "" {
+			fmt.Println("\n【总体趋势摘要】")
+			fmt.Println(result.Summary)
+		}
+		if len(result.HotTopics) > 0 {
+			fmt.Println("\n【热点话题】")
+			for i, t := range result.HotTopics {
+				sentimentLabel := map[string]string{"positive": "正面", "negative": "负面", "neutral": "中性"}[t.Sentiment]
+				if sentimentLabel == "" {
+					sentimentLabel = t.Sentiment
+				}
+				fmt.Printf("  %d. [%s] %s (热度:%d, %s)\n     %s\n", i+1, t.Category, t.Name, t.HeatScore, sentimentLabel, t.Summary)
+			}
+		}
+		if len(result.CategoryDist) > 0 {
+			fmt.Println("\n【分类分布】")
+			for _, c := range result.CategoryDist {
+				fmt.Printf("  %s: %d\n", c.Category, c.Count)
+			}
+		}
+		sd := result.SentimentDist
+		if sd.Positive > 0 || sd.Negative > 0 || sd.Neutral > 0 {
+			fmt.Println("\n【情绪分布】")
+			fmt.Printf("  正面: %d  负面: %d  中性: %d\n", sd.Positive, sd.Negative, sd.Neutral)
+		}
+		if result.TechTrend != "" {
+			fmt.Println("\n【技术趋势】")
+			fmt.Println(result.TechTrend)
+		}
+		if result.Sentiment != "" {
+			fmt.Println("\n【舆论情绪】")
+			fmt.Println(result.Sentiment)
+		}
+		if result.Suggestion != "" {
+			fmt.Println("\n【建议】")
+			fmt.Println(result.Suggestion)
+		}
+		fmt.Println("\n" + "═" + strings.Repeat("═", 58) + "═")
+		fmt.Printf("  生成时间: %s\n", result.GeneratedAt)
+		return
+	}
+
+	// --web 模式：启动 HTTP 服务器，展示历史汇总数据
+	if webMode {
+		if err := startWebServer(webAddr); err != nil {
+			fmt.Fprintf(os.Stderr, "Web 服务启动失败: %v\n", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	loadingMsg := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("2")).Render("加载各大热榜…")
